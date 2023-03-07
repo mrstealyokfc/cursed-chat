@@ -1,3 +1,7 @@
+//creator: null
+//date: III/VII/MMXXIII
+
+
 #include "server.h"
 
 #include<stdio.h>
@@ -21,8 +25,11 @@ server_s create_server(int port){
 
     setsockopt(server.fd,SOL_SOCKET,SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
 
-    if(bind(server.fd, (struct sockaddr*)&server.address, sizeof(server.address)) <  0)
+    if(bind(server.fd, (struct sockaddr*)&server.address, sizeof(server.address)) <  0){
         printf("failed to bind server to port: %d",port);
+        server.fd = 0;
+        return server;
+    }
 
     listen(server.fd, 3);
 

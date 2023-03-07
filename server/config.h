@@ -1,3 +1,6 @@
+//creator: null
+//date: III/VII/MMXXIII
+
 
 #ifndef __CONFIG_H
 #define __CONFIG_H

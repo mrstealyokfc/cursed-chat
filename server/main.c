@@ -1,3 +1,6 @@
+//creator: null
+//date: III/VII/MMXXIII
+
 #include<stdio.h>
 #include<unistd.h>
 #include<string.h>
@@ -11,14 +14,25 @@
 #include "server.h"
 #include "config.h"
 
-int clients[MAX_CLIENTS];
+typedef struct {
+	int sockfd;
+	char* name;
+} client_s;
+
+client_s clients[MAX_CLIENTS];
 
 void* handle_client_connection_t (void* client_fd_ptr);
 
+void release_client(int client_index, char* str_message){
+	send(clients[client_index].sockfd,str_message,strlen(str_message),0);
+	close(clients[client_index].sockfd);
+	clients[client_index].sockfd=0;
+}
+
 void add_new_client(int client_fd){
 	for(uint64_t i=0;i<MAX_CLIENTS;i++){
-		if(clients[i] == 0){
-			clients[i] = client_fd;
+		if(clients[i].sockfd == 0){
+			clients[i].sockfd = client_fd;
 			pthread_t ptid;
 			pthread_create(&ptid,NULL,&handle_client_connection_t,(void*) i);
 			return;
@@ -39,17 +53,18 @@ void* handle_client_connection_t (void* client_fd_ptr){
 
 	char message_buffer[MESSAGE_LENGTH+1];
 	memset(message_buffer,0,MESSAGE_LENGTH+1);
+
 	int read_len;
 	while(1){
-		read_len = read(clients[index], message_buffer, MESSAGE_LENGTH);
+
+		read_len = read(clients[index].sockfd, message_buffer, MESSAGE_LENGTH);
 
 		for(int i=0;i<MAX_CLIENTS;i++)
-			if(clients[i] !=0)
-				send(clients[i],message_buffer,read_len,0);
+			if(clients[i].sockfd !=0)
+				send(clients[i].sockfd,message_buffer,read_len,0);
 
-		if(read_len == 0 || clients[index] == 0){
-			clients[index]=0;
-			close(clients[index]);
+		if(read_len == 0 || clients[index].sockfd == 0){
+			release_client(index,"Error Has Occoured, you have been disconnected");
 			break;
 		}
 
@@ -65,11 +80,11 @@ void* add_new_clients_t(void* server_ptr){
 			break;
 		add_new_client(new_client);
 	}
+	return NULL;
 }
 
-void* control_thread(void* args){
+void cli_control(server_s server){
 
-	server_s server = *((server_s*)args);
 	char input[256];
 
 	while(1){
@@ -79,21 +94,12 @@ void* control_thread(void* args){
 
 		if(strcmp(input,"stop\n") == 0){
 			close_server(server);
-			const char* cm = SERVER_CLOSE_MESSAGE;
-			for(int i=0;i<MAX_CLIENTS;i++){
-				send(clients[i],cm,strlen(cm),0);
-				close(clients[i]);
-			}
-			memset(clients,0,MAX_CLIENTS*4);
+			for(int i=0;i<MAX_CLIENTS;i++)
+				release_client(i,SERVER_CLOSE_MESSAGE);
+			printf("Server Has Been Closed\n");
 			break;
 		}
 	}
-	return NULL;
-}
-
-void start_control_thread(server_s server){
-	pthread_t ptid;
-	pthread_create(&ptid,NULL,&control_thread,&server);
 }
 
 void start_listen_thread(server_s server){
@@ -102,13 +108,11 @@ void start_listen_thread(server_s server){
 }
 
 int main(){
-	printf("Program Started");
+	printf("Server Started\n");
 	
 	server_s server = create_server(PORT);
 
-
 	start_listen_thread(server);
 
-	//close_server(server);
-	control_thread(&server);
+	cli_control(server);
 }
