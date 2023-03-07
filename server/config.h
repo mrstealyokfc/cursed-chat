@@ -1,0 +1,3 @@
+
+#define MESSAGE_LENGTH 4092
+#define PORT 1982
