@@ -4,8 +4,8 @@
 
 #define MESSAGE_LENGTH 4092
 #define PORT 1982
-#define MAX_CLIENTS 32
+#define MAX_CLIENTS 4
 #define SERVER_CLOSE_MESSAGE "Server is going DOWN!!!"
-
+#define SERVER_FULL_MESSAGE "Server is full, you cannot join."
 
 #endif

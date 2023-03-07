@@ -13,10 +13,26 @@
 
 int clients[MAX_CLIENTS];
 
+void* handle_client_connection_t (void* client_fd_ptr);
 
 void add_new_client(int client_fd){
+	for(uint64_t i=0;i<MAX_CLIENTS;i++){
+		if(clients[i] == 0){
+			clients[i] = client_fd;
+			pthread_t ptid;
+			pthread_create(&ptid,NULL,&handle_client_connection_t,(void*) i);
+			return;
+		}
+	}
+
+	const char* message = SERVER_FULL_MESSAGE;
+
+	send(client_fd,message,strlen(message),0);
+	close(client_fd);
 
 }
+
+
 
 void* handle_client_connection_t (void* client_fd_ptr){
 	uint64_t index = (uint64_t)client_fd_ptr;
@@ -26,17 +42,23 @@ void* handle_client_connection_t (void* client_fd_ptr){
 	int read_len;
 	while(1){
 		read_len = read(clients[index], message_buffer, MESSAGE_LENGTH);
-		printf(message_buffer);
+
+		for(int i=0;i<MAX_CLIENTS;i++)
+			if(clients[i] !=0)
+				send(clients[i],message_buffer,read_len,0);
+
 		if(read_len == 0 || clients[index] == 0){
 			clients[index]=0;
 			close(clients[index]);
 			break;
 		}
+
 	}
 	return NULL;
 }
 
-void add_new_clients_t(server_s server){
+void* add_new_clients_t(void* server_ptr){
+	server_s server = *(server_s*)server_ptr;
 	while(1){
 		int new_client = await_client(server);
 		if(new_client < 0)
@@ -74,18 +96,19 @@ void start_control_thread(server_s server){
 	pthread_create(&ptid,NULL,&control_thread,&server);
 }
 
+void start_listen_thread(server_s server){
+	pthread_t ptid;
+	pthread_create(&ptid,NULL,&add_new_clients_t,&server);
+}
+
 int main(){
 	printf("Program Started");
 	
 	server_s server = create_server(PORT);
 
-	start_control_thread(server);
 
-	int client_fd = await_client(server);
-
-	clients[0]=client_fd;
-	handle_client_connection_t(0);
+	start_listen_thread(server);
 
 	//close_server(server);
-
+	control_thread(&server);
 }
