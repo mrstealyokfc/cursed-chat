@@ -11,4 +11,9 @@
 #define SERVER_CLOSE_MESSAGE "Server is going DOWN!!!"
 #define SERVER_FULL_MESSAGE "Server is full, you cannot join."
 
+typedef struct{
+    int sockfd;
+    char name[16];
+} client_s;
+
 #endif
