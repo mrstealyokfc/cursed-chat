@@ -10,26 +10,13 @@
 #include<sys/socket.h>
 #include<netinet/in.h>
 
-
+#include "clients.h"
 #include "server.h"
 #include "config.h"
 #include "commands.h"
 
-client_s clients[MAX_CLIENTS];
-
 void* handle_client_connection_t (void* client_fd_ptr);
 
-void reset_name(int index){
-	memcpy(clients[index].name,"anon",4);
-	memset(clients[index].name+4,0,12);
-	printf("%s",clients[index].name);
-}
-
-void release_client(int client_index, char* str_message){
-	send(clients[client_index].sockfd,str_message,strlen(str_message),0);
-	close(clients[client_index].sockfd);
-	clients[client_index].sockfd=0;
-}
 
 void add_new_client(int client_fd){
 	for(uint64_t i=0;i<MAX_CLIENTS;i++){
@@ -48,12 +35,6 @@ void add_new_client(int client_fd){
 
 }
 
-void send_to_all_clients(char* message, int length){
-	for(int i=0;i<MAX_CLIENTS;i++)
-		if(clients[i].sockfd != 0)
-			send(clients[i].sockfd,message,length,0);
-}
-
 void* handle_client_connection_t (void* client_index_notapointer){
 
 	uint64_t index = (uint64_t)client_index_notapointer;
@@ -68,12 +49,12 @@ void* handle_client_connection_t (void* client_index_notapointer){
 
 		int name_len = strlen(client->name);
 		msg_len = read(client->sockfd, msg_buf+name_len+3, MESSAGE_LENGTH-(name_len+3));
-		printf("message recieved\n");
+
 		if(msg_len == 0)
 			break;
 
 		if(msg_buf[name_len+3] == '/')
-			process_command(client, msg_buf);
+			process_command(client, msg_buf+name_len+3,msg_len);
 
 		else{
 			memcpy(msg_buf,client->name,name_len);
@@ -123,12 +104,6 @@ void start_listen_thread(server_s server){
 	pthread_create(&ptid,NULL,&add_new_clients_t,&server);
 }
 
-void prep_client_data(){
-	for(int i=0;i<MAX_CLIENTS;i++){
-		clients[i].sockfd = 0;
-		reset_name(i);
-	}
-}
 
 int main(){
 

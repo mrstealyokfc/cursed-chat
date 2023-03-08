@@ -3,6 +3,6 @@
 
 #include "config.h"
 
-void process_command(client_s* client,char* message);
+void process_command(client_s* client,char* message, int read_len);
 
 #endif // O

@@ -8,8 +8,9 @@
 #define MESSAGE_LENGTH 4092
 #define PORT 1982
 #define MAX_CLIENTS 4
-#define SERVER_CLOSE_MESSAGE "Server is going DOWN!!!"
-#define SERVER_FULL_MESSAGE "Server is full, you cannot join."
+#define SERVER_CLOSE_MESSAGE "Server is going DOWN!!!\n"
+#define SERVER_FULL_MESSAGE "Server is full, you cannot join.\n"
+
 
 typedef struct{
     int sockfd;
