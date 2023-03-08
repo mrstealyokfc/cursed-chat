@@ -15,16 +15,18 @@
 #include "config.h"
 #include "commands.h"
 
-void* handle_client_connection_t (void* client_fd_ptr);
+void* client_handler(void* client_vp);
 
 
 void add_new_client(int client_fd){
+
 	for(uint64_t i=0;i<MAX_CLIENTS;i++){
 		if(clients[i].sockfd == 0){
 			clients[i].sockfd = client_fd;
 			pthread_t ptid;
-			pthread_create(&ptid,NULL,&handle_client_connection_t,(void*) i);
+			pthread_create(&ptid,NULL,&client_handler,&clients[i]);
 			return;
+
 		}
 	}
 
@@ -35,11 +37,8 @@ void add_new_client(int client_fd){
 
 }
 
-void* handle_client_connection_t (void* client_index_notapointer){
-
-	uint64_t index = (uint64_t)client_index_notapointer;
-	client_s* client = &clients[index];
-
+void* client_handler(void* client_vp){
+	client_s* client = (client_s*)client_vp;
 	char msg_buf[MESSAGE_LENGTH+1];
 	int msg_len;
 
@@ -64,7 +63,7 @@ void* handle_client_connection_t (void* client_index_notapointer){
 
 	}
 
-	release_client(index, "disconnected due to error!\n");
+	release_client(client, "disconnected due to error!\n");
 
 	return NULL;
 }
@@ -92,7 +91,7 @@ void cli_control(server_s server){
 		if(strcmp(input,"stop\n") == 0){
 			close_server(server);
 			for(int i=0;i<MAX_CLIENTS;i++)
-				release_client(i,SERVER_CLOSE_MESSAGE);
+				release_client(&clients[i],SERVER_CLOSE_MESSAGE);
 			printf("Server Has Been Closed\n");
 			break;
 		}

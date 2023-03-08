@@ -1,18 +1,21 @@
 #include "clients.h"
 
+#include<pthread.h>
 #include<unistd.h>
 #include<string.h>
 #include<sys/socket.h>
+
+client_s clients[MAX_CLIENTS];
 
 void reset_name(int index){
 	memcpy(clients[index].name,"anon",4);
 	memset(clients[index].name+4,0,12);
 }
 
-void release_client(int client_index, char* str_message){
-	send(clients[client_index].sockfd,str_message,strlen(str_message),0);
-	close(clients[client_index].sockfd);
-	clients[client_index].sockfd=0;
+void release_client(client_s* client, char* str_message){
+	send(client->sockfd,str_message,strlen(str_message),0);
+	close(client->sockfd);
+	client->sockfd=0;
 }
 
 void send_to_all_clients(char* message, int length){
