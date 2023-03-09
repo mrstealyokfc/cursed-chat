@@ -39,6 +39,10 @@ void add_new_client(int client_fd){
 
 void* client_handler(void* client_vp){
 	client_s* client = (client_s*)client_vp;
+
+	memcpy(client->name,"anon",4);
+	memset(client->name+4, 0 , 12);
+
 	char msg_buf[MESSAGE_LENGTH+1];
 	int msg_len;
 

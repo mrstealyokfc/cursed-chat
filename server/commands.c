@@ -28,9 +28,16 @@ uint64_t get_dist_to_whitespace(char* str, char* whitespace,int search_len){
 }
 
 void cmd_nick(client_s* client, char* command,int read_len){
-    printf("NICK DETECTED\n");
-    command+=4;
-    read_len-=4;
+    printf("changing name\n");
+    command+=5;
+    read_len-=5;
+    int len = get_dist_to_whitespace(command,"\n\t\r",read_len); //uh oh.
+    if(len==0)
+        return;
+    if(len > 15)
+        len=15;
+    memset(client->name,0,16);
+    memcpy(client->name,command,len);
 }
 
 #define CMD_LEN 1
