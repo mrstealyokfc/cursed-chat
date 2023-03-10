@@ -9,6 +9,8 @@ void prep_client_data();
 
 void send_to_all_clients(char* message, int length);
 
+void send_to_client(client_s client, char* message);
+
 void release_client(client_s* client, char* str_message);
 
 #endif // __CLIENTS__H

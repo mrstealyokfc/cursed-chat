@@ -4,6 +4,7 @@
 #include<unistd.h>
 #include<string.h>
 #include<sys/socket.h>
+#include<stdbool.h>
 
 client_s clients[MAX_CLIENTS];
 
@@ -22,6 +23,17 @@ void send_to_all_clients(char* message, int length){
 	for(int i=0;i<MAX_CLIENTS;i++)
 		if(clients[i].sockfd != 0)
 			send(clients[i].sockfd,message,length,0);
+}
+
+void send_to_client(client_s client, char* message){
+	send(client.sockfd, message, strlen(message),0);
+}
+
+bool is_name_taken(char* name){
+	for(int i=0;i<MAX_CLIENTS;i++)
+		if(memcmp(name,clients[i].name,15) == 0)
+			return true;
+	return false;
 }
 
 void prep_client_data(){

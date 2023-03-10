@@ -49,22 +49,29 @@ void* client_handler(void* client_vp){
 	memset(msg_buf,0,MESSAGE_LENGTH+1);
 
 	while(client->sockfd){
-
+		//printf("name_len\n");
 		int name_len = strlen(client->name);
 		msg_len = read(client->sockfd, msg_buf+name_len+3, MESSAGE_LENGTH-(name_len+3));
 
+		//printf("msg_len\n");
 		if(msg_len == 0)
 			break;
 
+
+		//printf("msg_buf\n");
 		if(msg_buf[name_len+3] == '/')
 			process_command(client, msg_buf+name_len+3,msg_len);
 
 		else{
+
+			//printf("memcpy\n");
 			memcpy(msg_buf,client->name,name_len);
 			memcpy(msg_buf+name_len," | ",3);
+			//printf("sending\n");
 			send_to_all_clients(msg_buf,msg_len+name_len+3);
+			//printf("sent\n");
 		}
-
+		//printf("endloop\n");
 	}
 
 	release_client(client, "disconnected due to error!\n");
@@ -75,7 +82,9 @@ void* client_handler(void* client_vp){
 void* add_new_clients_t(void* server_ptr){
 	server_s server = *(server_s*)server_ptr;
 	while(1){
+		//printf("waiting for client\n");
 		int new_client = await_client(server);
+		//printf("new_client\n");
 		if(new_client < 0)
 			break;
 		add_new_client(new_client);
