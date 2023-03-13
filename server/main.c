@@ -6,6 +6,7 @@
 #include<string.h>
 #include<pthread.h>
 #include<stdint.h>
+#include<signal.h>
 
 #include<sys/socket.h>
 #include<netinet/in.h>
@@ -14,19 +15,63 @@
 #include "server.h"
 #include "config.h"
 #include "commands.h"
+#include "message_queue.h"
 
-void* client_handler(void* client_vp);
+void* client_handler(void* client_vp){
+	client_s* client = (client_s*)client_vp;
+
+	set_name(client,NULL);
+
+	char msg_buf[MESSAGE_LENGTH+2] = {0};
+
+	pthread_mutex_init(&client->message_buffer_lock,NULL);
+
+	int read_len;
+	while(client->sockfd){
+		int name_len = strlen(client->name);
+
+		pthread_mutex_lock(&client->message_buffer_lock);
+
+		//FIXME: sometimes  blocks here when running test_server.py
+		read_len = read(client->sockfd, msg_buf+name_len+3, MESSAGE_LENGTH-(name_len+3));
+
+		if(read_len <= 0 || client->sockfd == 0)
+			break;
+
+		if(msg_buf[name_len+3] == '/'){
+			process_command(client, msg_buf+name_len+3,read_len);
+			continue;
+		}
+
+		memcpy(msg_buf,client->name,name_len);
+		memcpy(msg_buf+name_len," | ",3);
+
+		memset(msg_buf+read_len+name_len+3,0,2);
+		if(*(msg_buf+name_len+2+read_len) != '\n')
+			*(msg_buf+name_len+3+read_len) = '\n';
+
+		broadcast_message(msg_buf,&client->message_buffer_lock);
+		printf("broadcast %s\n",msg_buf);
+
+	}
+
+	release_client(client, "disconnected due to error!\n");
+
+	pthread_mutex_destroy(&client->message_buffer_lock);
+
+	return NULL;
+}
+
 
 
 void add_new_client(int client_fd){
-
 	for(uint64_t i=0;i<MAX_CLIENTS;i++){
 		if(clients[i].sockfd == 0){
 			clients[i].sockfd = client_fd;
-			pthread_t ptid;
-			pthread_create(&ptid,NULL,&client_handler,&clients[i]);
-			return;
 
+			pthread_create(&clients[i].reciever_thread,NULL,&client_handler,&clients[i]);
+
+			return;
 		}
 	}
 
@@ -37,56 +82,14 @@ void add_new_client(int client_fd){
 
 }
 
-void* client_handler(void* client_vp){
-	client_s* client = (client_s*)client_vp;
-
-	memcpy(client->name,"anon",4);
-	memset(client->name+4, 0 , 12);
-
-	char msg_buf[MESSAGE_LENGTH+1];
-	int msg_len;
-
-	memset(msg_buf,0,MESSAGE_LENGTH+1);
-
-	while(client->sockfd){
-		//printf("name_len\n");
-		int name_len = strlen(client->name);
-		msg_len = read(client->sockfd, msg_buf+name_len+3, MESSAGE_LENGTH-(name_len+3));
-
-		//printf("msg_len\n");
-		if(msg_len == 0)
-			break;
-
-
-		//printf("msg_buf\n");
-		if(msg_buf[name_len+3] == '/')
-			process_command(client, msg_buf+name_len+3,msg_len);
-
-		else{
-
-			//printf("memcpy\n");
-			memcpy(msg_buf,client->name,name_len);
-			memcpy(msg_buf+name_len," | ",3);
-			//printf("sending\n");
-			send_to_all_clients(msg_buf,msg_len+name_len+3);
-			//printf("sent\n");
-		}
-		//printf("endloop\n");
-	}
-
-	release_client(client, "disconnected due to error!\n");
-
-	return NULL;
-}
-
 void* add_new_clients_t(void* server_ptr){
 	server_s server = *(server_s*)server_ptr;
 	while(1){
-		//printf("waiting for client\n");
 		int new_client = await_client(server);
-		//printf("new_client\n");
-		if(new_client < 0)
+		if(new_client < 0){
+			printf("Bad Client Connection");
 			break;
+		}
 		add_new_client(new_client);
 	}
 	return NULL;
@@ -116,16 +119,24 @@ void start_listen_thread(server_s server){
 	pthread_create(&ptid,NULL,&add_new_clients_t,&server);
 }
 
+void init(){
+	signal(SIGPIPE, SIG_IGN);
+	init_client_data();
+	start_message_queue();
+}
 
 int main(){
+	init();
 
-	prep_client_data();
-
-	printf("Server Started\n");
-	
 	server_s server = create_server(PORT);
 
-	start_listen_thread(server);
+	if(server.fd <= 0){
+		printf("Failed To Start Server\n");
+		return -1;
+	}
 
+	printf("Listening on Port:%d\n",PORT);
+
+	start_listen_thread(server);
 	cli_control(server);
 }

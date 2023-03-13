@@ -9,7 +9,6 @@
 #include<sys/socket.h>
 #include<netinet/in.h>
 
-
 server_s create_server(int port){
     server_s server;
 

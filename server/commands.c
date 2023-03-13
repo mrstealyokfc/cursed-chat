@@ -4,6 +4,7 @@
 
 #include "commands.h"
 #include "clients.h"
+#include "message_queue.h"
 
 typedef struct {
     char* name;
@@ -30,30 +31,39 @@ uint64_t get_dist_to_whitespace(char* str, char* whitespace,int search_len){
 }
 
 void cmd_nick(client_s* client, char* command,int read_len){
-    printf("changing name\n");
-
     command+=5;
     read_len-=5;
 
     int len = get_dist_to_whitespace(command,"\n\t\r",read_len); //uh oh.
 
-    if(len==0)
+    if(len==0){
+        send_message(client,"you must provide a name to change to\n",NULL);
         return;
+    }
 
     if(len > 15)
         len=15;
 
     for(int i=0;i<MAX_CLIENTS;i++){
         if(memcmp(clients[i].name,command,15) == 0){
-            send_to_client(*client,"That name is already taken\n");
+            send_message(client,"That name is already taken\n",NULL);
             return;
         }
     }
 
+
+    char old_name[16];
+    memcpy(old_name,client->name,16);
+
     memset(client->name,0,16);
     memcpy(client->name,command,len);
 
-    send_to_client(*client, "Your Name Has Been Changed\n");
+
+    //TODO ADD LOCK TO THIS BUFFER.
+
+    char message[96] = {0};
+    sprintf(message,"%s Has Changed Their Name To: %s\n",old_name,client->name);
+    broadcast_message(message,NULL);
 }
 
 #define CMD_LEN 1

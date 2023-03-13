@@ -3,14 +3,25 @@
 
 #include "config.h"
 
+#include<pthread.h>
+
+
+
+typedef struct {
+    int sockfd;
+    pthread_t reciever_thread;
+    pthread_mutex_t message_buffer_lock;
+    char name[16];
+} client_s;
+
 extern client_s clients[MAX_CLIENTS];
 
-void prep_client_data();
+void set_name(client_s* client, char* str);
 
-void send_to_all_clients(char* message, int length);
-
-void send_to_client(client_s client, char* message);
+void init_client_data();
 
 void release_client(client_s* client, char* str_message);
+
+client_s* get_empty_client();
 
 #endif // __CLIENTS__H

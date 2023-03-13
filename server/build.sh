@@ -3,4 +3,4 @@
 # creator: null
 # date: III/VII/MMXXIII
 
-gcc main.c server.c commands.c clients.c -o cserver
+gcc main.c server.c commands.c clients.c utils.c message_queue.c -o cserver
