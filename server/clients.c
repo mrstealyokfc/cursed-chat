@@ -37,3 +37,10 @@ bool is_name_taken(char* name){
 void init_client_data(){
 	memset(clients,0,sizeof(client_s)*MAX_CLIENTS);
 }
+
+client_s* get_empty_client_address(){
+	for(int i=0;i<MAX_CLIENTS;i++)
+		if(clients[i].sockfd == 0)
+			return &clients[i];
+	return NULL;
+}

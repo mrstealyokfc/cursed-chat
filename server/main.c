@@ -35,11 +35,14 @@ void* client_handler(void* client_vp){
 		//FIXME: sometimes  blocks here when running test_server.py
 		read_len = read(client->sockfd, msg_buf+name_len+3, MESSAGE_LENGTH-(name_len+3));
 
-		if(read_len <= 0 || client->sockfd == 0)
+		if(read_len <= 0 || client->sockfd == 0){
+			pthread_mutex_unlock(&client->message_buffer_lock);
 			break;
+		}
 
 		if(msg_buf[name_len+3] == '/'){
 			process_command(client, msg_buf+name_len+3,read_len);
+			pthread_mutex_unlock(&client->message_buffer_lock);
 			continue;
 		}
 
@@ -47,7 +50,8 @@ void* client_handler(void* client_vp){
 		memcpy(msg_buf+name_len," | ",3);
 
 		memset(msg_buf+read_len+name_len+3,0,2);
-		if(*(msg_buf+name_len+2+read_len) != '\n')
+
+		if(*(msg_buf+name_len+2+read_len) != '\n') //if not end with \n append \n
 			*(msg_buf+name_len+3+read_len) = '\n';
 
 		broadcast_message(msg_buf,&client->message_buffer_lock);
@@ -65,19 +69,14 @@ void* client_handler(void* client_vp){
 
 
 void add_new_client(int client_fd){
-	for(uint64_t i=0;i<MAX_CLIENTS;i++){
-		if(clients[i].sockfd == 0){
-			clients[i].sockfd = client_fd;
-
-			pthread_create(&clients[i].reciever_thread,NULL,&client_handler,&clients[i]);
-
-			return;
-		}
+	client_s* client = get_empty_client_address();
+	if(client != NULL){
+		client->sockfd = client_fd;
+		pthread_create(&client->reciever_thread,NULL,&client_handler,client);
+		return;
 	}
 
-	const char* message = SERVER_FULL_MESSAGE;
-
-	send(client_fd,message,strlen(message),0);
+	send(client_fd,SERVER_FULL_MESSAGE,strlen(SERVER_FULL_MESSAGE),0);
 	close(client_fd);
 
 }

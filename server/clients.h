@@ -22,6 +22,6 @@ void init_client_data();
 
 void release_client(client_s* client, char* str_message);
 
-client_s* get_empty_client();
+client_s* get_empty_client_address();
 
 #endif // __CLIENTS__H

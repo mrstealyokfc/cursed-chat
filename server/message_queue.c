@@ -50,6 +50,7 @@ void* sender_thread(void* args){
             usleep(1000);
             continue;
         }
+        printf("SENDING_MESSAGE!!!");
         message_s msg = message_queue[next_read];
         if(msg.dest != NULL){
             send(msg.dest->sockfd,msg.message,strlen(msg.message),0);
@@ -66,6 +67,7 @@ void* sender_thread(void* args){
         if(msg.lock != NULL)
             pthread_mutex_unlock(msg.lock);
         next_read++;
+        printf("MESSAGE_SEND");
     }
 }
 
