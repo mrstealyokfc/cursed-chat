@@ -1,11 +1,9 @@
 #ifndef __CLIENTS__H
 #define __CLIENTS__H
 
-#include "config.h"
-
 #include<pthread.h>
 
-
+#include "settings.h"
 
 typedef struct {
     int sockfd;

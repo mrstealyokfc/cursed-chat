@@ -30,6 +30,12 @@ uint64_t get_dist_to_whitespace(char* str, char* whitespace,int search_len){
     return dist;
 }
 
+/*
+** FIXME:
+** if the nick name is longer than like 10 chars breaks stuff somehow.
+** only on some systems, like aws debian server.
+*/
+
 void cmd_nick(client_s* client, char* command,int read_len){
     command+=5;
     read_len-=5;
@@ -59,18 +65,32 @@ void cmd_nick(client_s* client, char* command,int read_len){
     memcpy(client->name,command,len);
 
 
-    //TODO ADD LOCK TO THIS BUFFER.
+    //TODO FIND A BETTER WAY TO DO THIS.
+    pthread_mutex_t msg_lock;
+    pthread_mutex_init(&msg_lock,NULL);
+    pthread_mutex_lock(&msg_lock);
 
-    char message[96] = {0};
+    char message[256] = {0};
     sprintf(message,"%s Has Changed Their Name To: %s\n",old_name,client->name);
-    broadcast_message(message,NULL);
+    broadcast_message(message,&msg_lock);
+
+    //waits for the mutex to be unlocked by the message_queue thread.
+    pthread_mutex_lock(&msg_lock);
+    //mutex must be unlocked before being destroyed (see man pthread_mutex_destroy)
+    pthread_mutex_unlock(&msg_lock);
+    pthread_mutex_destroy(&msg_lock);
 }
 
-#define CMD_LEN 1
+void cmd_test(client_s* client, char* command, int read_len){
+    send_message(client,"Test Command Executed\n",NULL);
+}
 
-const command_s commands[CMD_LEN] ={
-    { .name = "nick", .cmd = &cmd_nick}
+//fix this if it does not work.
+const command_s commands[] ={
+    { .name = "nick", .cmd = &cmd_nick},
+    { .name = "test", .cmd = &cmd_test}
 };
+#define CMD_LEN sizeof(commands)/sizeof(command_s)
 
 void process_command(client_s* client, char* command, int read_len){
     //ignore the frist char (/)
@@ -83,5 +103,4 @@ void process_command(client_s* client, char* command, int read_len){
         if(strlen(commands[i].name) == cmd_len)
             if(memcmp(commands[i].name,command,cmd_len) == 0)
                 (commands[i].cmd)(client,command,read_len);
-
 }

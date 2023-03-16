@@ -13,7 +13,7 @@
 
 #include "clients.h"
 #include "server.h"
-#include "config.h"
+#include "settings.h"
 #include "commands.h"
 #include "message_queue.h"
 
@@ -22,18 +22,19 @@ void* client_handler(void* client_vp){
 
 	set_name(client,NULL);
 
-	char msg_buf[MESSAGE_LENGTH+2] = {0};
+	char msg_buf[MESSAGE_LENGTH] = {0};
 
 	pthread_mutex_init(&client->message_buffer_lock,NULL);
 
 	int read_len;
+	int name_len;
 	while(client->sockfd){
-		int name_len = strlen(client->name);
+		name_len = strlen(client->name);
 
 		pthread_mutex_lock(&client->message_buffer_lock);
 
 		//FIXME: sometimes  blocks here when running test_server.py
-		read_len = read(client->sockfd, msg_buf+name_len+3, MESSAGE_LENGTH-(name_len+3));
+		read_len = read(client->sockfd, msg_buf+name_len+3, MESSAGE_LENGTH-(name_len+5));
 
 		if(read_len <= 0 || client->sockfd == 0){
 			pthread_mutex_unlock(&client->message_buffer_lock);
@@ -51,11 +52,12 @@ void* client_handler(void* client_vp){
 
 		memset(msg_buf+read_len+name_len+3,0,2);
 
-		if(*(msg_buf+name_len+2+read_len) != '\n') //if not end with \n append \n
-			*(msg_buf+name_len+3+read_len) = '\n';
+		// if message does not end with \n append \n
+		if(*(msg_buf+name_len+2+read_len) != '\n')
+ 			*(msg_buf+name_len+3+read_len) = '\n';
 
+		//mutex will be unlocked by sender thread.
 		broadcast_message(msg_buf,&client->message_buffer_lock);
-		printf("broadcast %s\n",msg_buf);
 
 	}
 

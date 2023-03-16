@@ -1,13 +1,12 @@
 //creator: null
 //date: III/VII/MMXXIII
+#ifndef __SERVER_H
+#define __SERVER_H
 
 #include<sys/socket.h>
 #include<netinet/in.h>
 
-#include "config.h"
-
-#ifndef __SERVER_H
-#define __SERVER_H
+#include "settings.h"
 
 typedef struct {
     int fd;

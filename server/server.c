@@ -1,13 +1,14 @@
 //creator: null
 //date: III/VII/MMXXIII
 
-
 #include "server.h"
 
 #include<stdio.h>
 #include<stdlib.h>
 #include<sys/socket.h>
 #include<netinet/in.h>
+
+//TODO: add error handling.
 
 server_s create_server(int port){
     server_s server;
@@ -18,7 +19,6 @@ server_s create_server(int port){
     server.address.sin_family=AF_INET;
     server.address.sin_addr.s_addr = INADDR_ANY;
     server.address.sin_port=htons(port);
-
 
     int opt = 1;
 
